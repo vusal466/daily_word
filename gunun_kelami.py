@@ -2,6 +2,7 @@
 """
 Günün Kəlamı — Notion Yeniləyici
 GitHub Actions tərəfindən hər gün avtomatik işə salınır.
+Skript: köhnə kəlamı silir, yenisini səhifənin ən üstünə əlavə edir.
 """
 
 import urllib.request
@@ -12,7 +13,7 @@ import sys
 import os
 
 NOTION_TOKEN = os.environ.get("NOTION_TOKEN", "")
-PAGE_ID       = os.environ.get("PAGE_ID", "32605da243958199b81dc27b16e2f514")
+PAGE_ID       = os.environ.get("PAGE_ID", "32605da2439581068e3cf1a18b6e0a52")
 
 SITATLAR = [
     {"text": "Bəzən uçmaq üçün düşmək lazımdır.",
@@ -119,10 +120,7 @@ def kelam_bloku_yarat(sitat):
         "❤️ Həyat": "❤️", "🎯 Hədəf": "🎯", "🌱 Böyümə": "🌱",
     }
     ikon = movzu_ikon.get(sitat["movzu"], "💡")
-    metn = (
-        f"❝ {sitat['text']} ❞\n"
-        f"— {sitat['muellif']}  ·  {sitat['menbe']}  ·  {sitat['movzu']}"
-    )
+    metn = f"❝ {sitat['text']} ❞  —  {sitat['muellif']}  ·  {sitat['menbe']}  ·  {sitat['movzu']}"
     return {
         "object": "block",
         "type": "callout",
@@ -138,38 +136,31 @@ def main():
     print("🔍 Notion səhifəsi oxunur...")
     bloqlar = sehifenin_bloklari()
 
-    onceki_id = None
-    silindi = False
-    for i, blok in enumerate(bloqlar):
+    # Köhnə kəlamı tap və sil (yalnız birinci səviyyədə axtar)
+    for blok in bloqlar:
         tip = blok.get("type", "")
-        metn_hisseler = (
-            blok.get(tip, {}).get("rich_text", [])
-            if tip in ("callout", "paragraph", "quote") else []
-        )
+        metn_hisseler = blok.get(tip, {}).get("rich_text", []) if tip in ("callout", "paragraph", "quote") else []
         metn = "".join(t.get("plain_text", "") for t in metn_hisseler)
         if "❝" in metn:
-            onceki_id = bloqlar[i - 1]["id"] if i > 0 else None
             bloku_sil(blok["id"])
             print("🗑️  Köhnə kəlam silindi.")
-            silindi = True
             break
 
+    # Bugünün sitatı
     sitat = bugunun_sitati()
     print(f"📖 Bugünün kəlamı: \"{sitat['text'][:60]}\"")
     print(f"   — {sitat['muellif']}  ·  {sitat['menbe']}")
 
-    payload = {"children": [kelam_bloku_yarat(sitat)]}
-    if onceki_id:
-        payload["after"] = onceki_id
-    notion_request("PATCH", f"blocks/{PAGE_ID}/children", payload)
+    # Səhifənin ən başına əlavə et (after olmadan = başa əlavə olunur)
+    notion_request("PATCH", f"blocks/{PAGE_ID}/children", {
+        "children": [kelam_bloku_yarat(sitat)]
+    })
 
-    if not silindi:
-        print("ℹ️  Köhnə kəlam tapılmadı — yeni kəlam əlavə edildi.")
     print("✅ Notion uğurla yeniləndi!")
 
 
 if __name__ == "__main__":
     if not NOTION_TOKEN:
-        print("❌ NOTION_TOKEN tapılmadı! GitHub Secrets-də əlavə edin.")
+        print("❌ NOTION_TOKEN tapılmadı!")
         sys.exit(1)
     main()
