@@ -1,0 +1,24 @@
+name: Günün Kəlamı
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-quote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu yüklə
+        uses: actions/checkout@v4
+
+      - name: Python qur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Kəlamı yenilə
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PAGE_ID: ${{ secrets.PAGE_ID }}
+        run: python gunun_kelami.py
