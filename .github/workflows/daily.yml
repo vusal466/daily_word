@@ -2,18 +2,22 @@ name: Günün Kəlamı
 
 on:
   schedule:
-    - cron: '0 4 * * *'
-  workflow_dispatch:
+    - cron: '0 4 * * *'   # Hər gün saat 08:00 Bakı vaxtı (UTC+4)
+  workflow_dispatch:        # Manual işə salmaq üçün düymə
 
 jobs:
   update-quote:
     runs-on: ubuntu-latest
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Node.js 24 istifadə et
+
     steps:
       - name: Kodu yüklə
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Python qur
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: '3.11'
 
